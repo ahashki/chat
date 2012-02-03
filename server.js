@@ -2,7 +2,7 @@ var app = require('express').createServer();
 var io = require('socket.io').listen(app);
 io.set('log level', 0);
 
-app.listen(8080);
+app.listen(14243);
 
 app.get('/', function (req, res) {
     console.log('served static file ' + __dirname + '/index.html');
