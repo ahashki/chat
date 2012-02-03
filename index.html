@@ -5,6 +5,13 @@
         <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
         <script src="/socket.io/socket.io.js"></script>
         <script>
+            function createLink(text) {
+                var regex = /[-a-zA-Z0-9@:%_\+.~#?&//=]{2,256}\.[a-z]{2,4}\b(\/[-a-zA-Z0-9@:%_\+.~#?&//=]*)?/gi;
+                return text.replace(regex, function(url) {
+                    return '<a href="' + url + '" target="_blank">' + url + '</a>';
+                });
+            }
+
             function addMessageRow(data, classes) {
                 var d = new Date(data.timestamp);
                 var hour = d.getHours();
@@ -15,6 +22,11 @@
                 {
                     hour -= 12;
                     ampm = 'PM';
+                }
+
+                if (hour == 0)
+                {
+                    hour = 12;
                 }
 
                 if (minutes < 10)
@@ -29,9 +41,10 @@
 
                 $('<td class="nickname">').text(data.nickname).appendTo(row);
                 var span = $('<span class="timestamp">').text(time);
-                $('<td class="message">').html(span).append(data.message).appendTo(row);
+                $('<td class="message">').html(span).append(createLink(data.message)).appendTo(row);
 
                 $('#messages tbody').append(row);
+                $('#messages').scrollTop($('#messages')[0].scrollHeight);
             }
 
             function addUser(data) {
@@ -72,7 +85,7 @@
 
                 socket.on('disconnect', function(data) {
                     $('tr[data-user-id=' + data.id + '] .nickname').addClass('offline');
-                    $('li[data-user-id=' + data.id + ']').remove();
+                    $('li[data-user-id=' + data.id + '], div[data-user-id=' + data.id + ']').remove();
                 });
 
                 socket.on('message', function (data) {
@@ -82,10 +95,10 @@
 
                 socket.on('mouse-location', function(data) {
                     if (!$('#' + data.id).length) {
-                        $('#cursors').append('<div id="' + data.id + '" style="position: absolute;">X</div>');
+                        $('<div>').attr('data-user-id', data.id).css('position', 'absolute').text('X').appendTo('#cursors');
                     }
 
-                    $('#' + data.id).css({
+                    $('div[data-user-id=' + data.id + ']').css({
                         left: data.x,
                         top: data.y
                     });
@@ -189,13 +202,14 @@
             {
                 border: 1px solid #eee;
                 height: 300px;
-                width: 600px;
+                min-width: 600px;
                 overflow: auto;
             }
             #messages table
             {
                 border-collapse: collapse;
                 border: 0;
+                max-width: 100%;
                 width: 100%;
             }
             #message
@@ -221,6 +235,7 @@
                 border: 1px solid #eee;
                 height: auto;
                 float: right;
+                margin-left: 20px;
                 padding: 5px;
                 width: 150px;
             }
@@ -271,6 +286,11 @@
             {
                 border-left: 1px solid #ccc;
                 padding: 4px 4px 4px 10px;
+            }
+            .message-row .message pre
+            {
+                font-family: monospace;
+                white-space: pre-wrap;
             }
             .message-row .timestamp
             {
