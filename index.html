@@ -46,7 +46,7 @@
             $(document).ready(function () {
                 var nickname = 'anon';
                 var originalHeight = $('#message')[0].scrollHeight;
-                var socket = io.connect('http://localhost:8080/');
+                var socket = io.connect('http://chatly.nodester.com/');
                 var socketId = '';
 
                 socket.on('register', function (data) {
