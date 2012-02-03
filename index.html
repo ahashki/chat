@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>Chat-n-mouse</title>
+        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+        <script src="/socket.io/socket.io.js"></script>
+        <script>
+            function addMessageRow(data, classes) {
+                var d = new Date(data.timestamp);
+                var hour = d.getHours();
+                var minutes = d.getMinutes();
+                var ampm = 'AM';
+
+                if (hour > 12)
+                {
+                    hour -= 12;
+                    ampm = 'PM';
+                }
+
+                if (minutes < 10)
+                {
+                    minutes = '0' + minutes;
+                }
+
+                var time = hour + ':' + minutes + ' ' + ampm;
+                var row = $('<tr class="message-row ' + (classes != undefined ? classes : '') + '">').attr({
+                    'data-user-id': data.id
+                });
+
+                $('<td class="nickname">').text(data.nickname).appendTo(row);
+                var span = $('<span class="timestamp">').text(time);
+                $('<td class="message">').html(span).append(data.message).appendTo(row);
+
+                $('#messages tbody').append(row);
+            }
+
+            function addUser(data) {
+                if ($('li[data-user-id=' + data.id + ']').length == 0) {
+                    $('<li>').attr({
+                        'data-user-id': data.id,
+                        title: data.nickname
+                    }).text(data.nickname).appendTo('#users ul');
+                }
+            }
+
+            $(document).ready(function () {
+                var nickname = 'anon';
+                var originalHeight = $('#message')[0].scrollHeight;
+                var socket = io.connect('http://localhost:8080/');
+                var socketId = '';
+
+                socket.on('register', function (data) {
+                    socketId = data.id;
+                    nickname += '-' + socketId;
+                    $('#nickname span').text(nickname);
+                    $('input[name=new-username]').val(nickname);
+
+                    data.nickname = nickname;
+                    addUser(data);
+                });
+
+                socket.emit('register', {
+                    nickname: nickname
+                });
+
+                socket.on('new-user', function (data) {
+                    addUser(data);
+
+                    // add room join row
+                    // add welcome row
+                });
+
+                socket.on('disconnect', function(data) {
+                    $('tr[data-user-id=' + data.id + '] .nickname').addClass('offline');
+                    $('li[data-user-id=' + data.id + ']').remove();
+                });
+
+                socket.on('message', function (data) {
+                    addMessageRow(data);
+                    addUser(data);
+                });
+
+                socket.on('mouse-location', function(data) {
+                    if (!$('#' + data.id).length) {
+                        $('#cursors').append('<div id="' + data.id + '" style="position: absolute;">X</div>');
+                    }
+
+                    $('#' + data.id).css({
+                        left: data.x,
+                        top: data.y
+                    });
+                });
+
+                socket.on('update-nickname', function(data) {
+                    $('tr[data-user-id=' + data.id + '] .nickname, li[data-user-id=' + data.id + ']').text(data.nickname);
+                    addUser(data);
+                });
+
+                $('#send-message').click(function() {
+                    var message = $('#message').val();
+
+                    if ($.trim(message).length > 0) {
+                        var d = new Date();
+
+                        if (message.indexOf("\n") >= 0)
+                        {
+                            message = '<pre>' + message + '</pre>';
+                        }
+
+                        var data = {
+                            id: socketId,
+                            nickname: nickname,
+                            message: message,
+                            timestamp: d
+                        };
+
+                        addMessageRow(data, 'message-owned');
+                        socket.emit('message', data);
+                        $('#message').val('').css('height', originalHeight);
+                    }
+                });
+
+                $('#message').keydown(function(e) {
+                    if (e.which == 13) {
+                        $('#send-message').click();
+                        return false;
+                    }
+                }).keyup(function(e) {
+                    var newHeight = $('#message')[0].scrollHeight;
+
+                    if (newHeight <= originalHeight)
+                    {
+                        return;
+                    }
+
+                    $(this).css('height', newHeight);
+                });
+
+                $('input[name=new-username]').keydown(function(e) {
+                    if (e.which == 13) {
+                        $('#update-username').click();
+                        return false;
+                    }
+                });
+
+                $('#update-username').click(function() {
+                    nickname = $('input[name=new-username]').val();
+
+                    socket.emit('update-nickname', {
+                        nickname: nickname
+                    });
+
+                    $('#users #nickname span').text(nickname).show();
+                    $('#new-username').hide();
+                });
+
+                $('#cancel-update-username').click(function() {
+                    $('#users #nickname span').show();
+                    $('#new-username').hide();
+                });
+
+                $('#nickname a').click(function() {
+                    $('#users #nickname span').hide();
+                    $('#new-username').show();
+                    $('input[name=new-username]').focus();
+                });
+
+                $(document).mousemove(function(e) {
+                    socket.emit('mouse-location', {
+                        x: e.pageX,
+                        y: e.pageY
+                    });
+                });
+            });
+        </script>
+
+        <style>
+            *
+            {
+                font-family: Arial, Verdana, Sans Serif;
+                margin: 0;
+                padding: 0;
+            }
+            body
+            {
+                padding: 10px;
+            }
+            #messages
+            {
+                border: 1px solid #eee;
+                height: 300px;
+                width: 600px;
+                overflow: auto;
+            }
+            #messages table
+            {
+                border-collapse: collapse;
+                border: 0;
+                width: 100%;
+            }
+            #message
+            {
+                border: 1px solid #ccc;
+                float: left;
+                height: auto;
+                width: 480px;
+            }
+            #send-message
+            {
+                float: right;
+                font-weight: bold;
+                padding: 9px 20px;
+            }
+            #actions
+            {
+                margin-top: 5px;
+                width: 600px;
+            }
+            #users
+            {
+                border: 1px solid #eee;
+                height: auto;
+                float: right;
+                padding: 5px;
+                width: 150px;
+            }
+            #users .nickname
+            {
+                border-bottom: 1px solid #ccc;
+            }
+            #users li
+            {
+                list-style: none;
+                overflow: hidden;
+                white-space: nowrap;
+            }
+            .message-row
+            {
+                border-bottom: 1px solid #ccc;
+                background-color: #fff;
+                font-size: 0.9em;
+            }
+            .message-row td
+            {
+                vertical-align: top;
+            }
+            .message-owned
+            {
+                background-color: #f6f6f6;
+            }
+            .message-row .offline
+            {
+                color: #aaa;
+            }
+            .message-row .nickname
+            {
+                border-right: 1px solid #ccc;
+                font-weight: bold;
+                max-width: 110px;
+                overflow: hidden;
+                padding: 4px 10px 4px 4px;
+                text-align: right;
+                white-space: nowrap;
+                width: 110px;
+            }
+            .message-owned .nickname
+            {
+                border-right: 1px solid #ccc;
+            }
+            .message-row .message
+            {
+                border-left: 1px solid #ccc;
+                padding: 4px 4px 4px 10px;
+            }
+            .message-row .timestamp
+            {
+                color: #bbb;
+                float: right;
+                font-size: 0.8em;
+            }
+            #new-username
+            {
+                display: none;
+            }
+            #nickname
+            {
+                border-bottom: 1px solid #ccc;
+                margin-bottom: 10px;
+                padding-bottom: 10px;
+            }
+            #nickname span
+            {
+                display: block;
+                overflow: hidden;
+                white-space: nowrap;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div id="wrapper">
+            <div id="users">
+                <div id="nickname">
+                    <span>anonymous</span>
+
+                    <div id="new-username">
+                        <input type="text" name="new-username" value="anonymous" />
+                        <input id="update-username" type="submit" value="Save" />
+                        <input id="cancel-update-username" type="submit" value="Cancel" />
+                    </div>
+
+                    <a href="javascript:;">edit</a>
+                </div>
+
+                <ul></ul>
+            </div>
+
+            <div id="cursors"></div>
+
+            <div id="messages">
+                <table>
+                    <thead></thead>
+                    <tbody></tbody>
+                    <tfoot></tfoot>
+                </table>
+            </div>
+
+            <div id="actions">
+                <textarea id="message"></textarea>
+                <input id="send-message" type="submit" value="Send" />
+            </div>
+        </div>
+    </body>
+</html>
