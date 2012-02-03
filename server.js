@@ -1,13 +1,15 @@
-var app = require('express').createServer();
+var express = require('express');
+var app = module.exports = express.createServer();
 var io = require('socket.io').listen(app);
 io.set('log level', 0);
 
+app.configure(function() {
+    app.use(express.static(__dirname + '/public/'));
+});
+
 app.listen(process.env.C9_PORT || 14243);
 
-app.get('/', function (req, res) {
-    console.log('served static file ' + __dirname + '/index.html');
-    res.sendfile(__dirname + '/index.html');
-});
+var users = {};
 
 io.sockets.on('connection', function (socket) {
     socket.on('disconnect', function () {
