@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml">
     <head>
-        <title>Chat-n-mouse</title>
+        <title>Chat</title>
         <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
         <script src="/socket.io/socket.io.js"></script>
         <script>
@@ -195,138 +195,7 @@
             });
         </script>
 
-        <style>
-            *
-            {
-                font-family: Arial, Verdana, Sans Serif;
-                margin: 0;
-                padding: 0;
-            }
-            body
-            {
-                padding: 10px;
-            }
-            #messages
-            {
-                border: 1px solid #eee;
-                height: 300px;
-                min-width: 600px;
-                overflow: auto;
-            }
-            #messages table
-            {
-                border-collapse: collapse;
-                border: 0;
-                max-width: 100%;
-                width: 100%;
-            }
-            #message
-            {
-                border: 1px solid #ccc;
-                float: left;
-                height: auto;
-                width: 480px;
-            }
-            #send-message
-            {
-                float: right;
-                font-weight: bold;
-                padding: 9px 20px;
-            }
-            #actions
-            {
-                margin-top: 5px;
-                width: 600px;
-            }
-            #users
-            {
-                border: 1px solid #eee;
-                height: auto;
-                float: right;
-                margin-left: 20px;
-                padding: 5px;
-                width: 150px;
-            }
-            #users .nickname
-            {
-                border-bottom: 1px solid #ccc;
-            }
-            #users li
-            {
-                list-style: none;
-                overflow: hidden;
-                white-space: nowrap;
-            }
-            .message-row
-            {
-                border-bottom: 1px solid #ccc;
-                background-color: #fff;
-                font-size: 0.9em;
-            }
-            .message-row td
-            {
-                vertical-align: top;
-            }
-            .message-owned
-            {
-                background-color: #f6f6f6;
-            }
-            .message-row .offline
-            {
-                color: #aaa;
-            }
-            .message-row .nickname
-            {
-                border-right: 1px solid #ccc;
-                font-weight: bold;
-                max-width: 110px;
-                overflow: hidden;
-                padding: 4px 10px 4px 4px;
-                text-align: right;
-                white-space: nowrap;
-                width: 110px;
-            }
-            .message-owned .nickname
-            {
-                border-right: 1px solid #ccc;
-            }
-            .message-row .message
-            {
-                border-left: 1px solid #ccc;
-                padding: 4px 4px 4px 10px;
-            }
-            .message-row .message pre
-            {
-                font-family: monospace;
-                white-space: pre-wrap;
-            }
-            .message-row .message img
-            {
-                margin-top: 5px;
-            }
-            .message-row .timestamp
-            {
-                color: #bbb;
-                float: right;
-                font-size: 0.8em;
-            }
-            #new-username
-            {
-                display: none;
-            }
-            #nickname
-            {
-                border-bottom: 1px solid #ccc;
-                margin-bottom: 10px;
-                padding-bottom: 10px;
-            }
-            #nickname span
-            {
-                display: block;
-                overflow: hidden;
-                white-space: nowrap;
-            }
-        </style>
+        <link href="/screen.css" media="screen" rel="stylesheet" />
     </head>
 
     <body>
