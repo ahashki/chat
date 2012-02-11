@@ -105,6 +105,8 @@ body
 .message-row .message img
 {
     margin-top: 5px;
+    max-height: 300px;
+    max-width: 300px;
 }
 .message-row .timestamp
 {
