@@ -272,6 +272,8 @@
                         addNoticeRow(data, 'Nickname `' + data.nickname + '` already exists.', 'message-error');
                     }
                     else {
+                        $('input[name=new-username]').val(data.nickname);
+
                         //check if anonymous user
                         $.cookies.set('chat.nickname', data.nickname);
 
@@ -337,11 +339,13 @@
 
                     $('#users #nickname span, #nickname a').show();
                     $('#new-username').hide();
+                    $('#message').focus();
                 });
 
                 $('#cancel-update-username').click(function() {
                     $('#users #nickname span, #nickname a').show();
                     $('#new-username').hide();
+                    $('#message').focus();
                 });
 
                 $('#nickname a').click(function() {
