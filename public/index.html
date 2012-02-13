@@ -129,6 +129,7 @@
                             $('#messages tbody .last-row td.message').append('<br />').append(createLink(message));
                         }
 
+                        updateScrolling();
                         return;
                     }
                 }
@@ -162,6 +163,7 @@
                         var timestamp = $('#messages tbody .last-row .timestamp');
                         $('#messages tbody .last-row td').html(timestamp).append(message);
 
+                        updateScrolling();
                         return;
                     }
                 }
@@ -259,6 +261,7 @@
 
                 socket.on('update-nickname', function(data) {
                     $('tr[data-user-id=' + data.id + '] .nickname, li[data-user-id=' + data.id + ']').text(data.nickname);
+                    $('li[data-user-id=' + data.id + ']').attr('title', data.nickname);
                     addUser(data);
                 });
 
@@ -318,7 +321,9 @@
                     $(this).css('height', newHeight);
                 });
 
-                $('input[name=new-username]').keydown(function(e) {
+                $('input[name=new-username]').focus(function () {
+                    $(this).select();
+                }).keydown(function(e) {
                     if (e.which == 13) {
                         $('#update-username').click();
                         return false;
