@@ -11,8 +11,9 @@ body
 #messages
 {
     border: 1px solid #eee;
-    height: 300px;
+    min-height: 300px;
     min-width: 600px;
+    height: 100%;
     overflow: auto;
 }
 #messages table
@@ -22,23 +23,45 @@ body
     max-width: 100%;
     width: 100%;
 }
+#messages table tbody > :last-child
+{
+    border-bottom: 1px solid #ccc;
+}
 #message
 {
     border: 1px solid #ccc;
     float: left;
-    height: auto;
-    width: 480px;
+    font-size: 0.8em;
+    height: 30px;
+    padding: 2px;
+    min-width: 510px;
+    margin-top: 2px;
 }
 #send-message
 {
+    background-color: #aaa;
+    border: 2px solid #777;
+    border-radius: 5px;
+    color: #fff;
     float: right;
     font-weight: bold;
+    text-transform: uppercase;
     padding: 9px 20px;
+}
+#send-message:hover
+{
+    background-color: #999;
+}
+#send-message:active
+{
+    top: 1px;
+    position: relative;
 }
 #actions
 {
-    margin-top: 5px;
-    width: 600px;
+    bottom: 10px;
+    position: absolute;
+    min-width: 620px;
 }
 #users
 {
@@ -59,25 +82,50 @@ body
     overflow: hidden;
     white-space: nowrap;
 }
-.message-row
+.message-row,
+.message-error,
+.message-notice,
+.message-welcome
 {
-    border-bottom: 1px solid #ccc;
+    border-top: 1px solid #ccc;
     background-color: #fff;
     font-size: 0.9em;
 }
-.message-row td
+.message-row td,
+.message-error td,
+.message-notice td,
+.message-welcome td
 {
     vertical-align: top;
 }
-.message-owned
+.message-owned,
+.message-notice
 {
     background-color: #f6f6f6;
+}
+.message-error
+{
+    background-color: #ffecec;
+}
+.message-welcome
+{
+    background-color: #ecf5ff;
+}
+.message-error td,
+.message-notice td,
+.message-welcome td
+{
+    padding: 4px 4px 4px 10px;
 }
 .message-row .offline
 {
     color: #aaa;
 }
-.message-row .nickname
+.message-row div.expanded
+{
+    display: none;
+}
+.message-row td.nickname
 {
     border-right: 1px solid #ccc;
     font-weight: bold;
@@ -88,27 +136,32 @@ body
     white-space: nowrap;
     width: 110px;
 }
-.message-owned .nickname
+.message-owned td.nickname
 {
     border-right: 1px solid #ccc;
 }
-.message-row .message
+.message-row td.message
 {
     border-left: 1px solid #ccc;
     padding: 4px 4px 4px 10px;
 }
-.message-row .message pre
+.message-row td.message pre
 {
     font-family: monospace;
     white-space: pre-wrap;
 }
-.message-row .message img
+.message-row td.message img
 {
+    border: 0;
     margin-top: 5px;
     max-height: 300px;
     max-width: 300px;
 }
-.message-row .timestamp
+.message-row td.message a img
+{
+    border: 0;
+}
+.message-row span.timestamp
 {
     color: #bbb;
     float: right;
