@@ -3,7 +3,7 @@
     <head>
         <title>Chat</title>
         <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
-        <script src="/socket.io/socket.io.js"></script>
+        <script src="socket.io/socket.io.js"></script>
         <script src="scripts/jquery.cookies.2.2.0.min.js"></script>
         <script>
             var oldNickname = 'anon';
@@ -23,8 +23,7 @@
                 var regex = /[-a-zA-Z0-9@:%_\+.~#?&//=]{2,256}\.[a-z]{2,4}\b(\/[-a-zA-Z0-9@:%_\+.~#?&//=]*)?/gi;
                 return text.replace(regex, function(url) {
                     var ext = url.split('.').pop();
-
-                    var anchor = '<a href="' + url + '" target="_blank">' + url + '</a>';
+                    var anchor = '<a href="' + url + '" target="_blank">' + (url.length > 95 ? url.substr(0, 95) + '...' : url) + '</a>';
 
                     switch (ext) {
                         case 'png':
@@ -32,8 +31,7 @@
                         case 'jpeg':
                         case 'gif':
                         case 'bmp':
-                            anchor += '<br />';
-                            anchor += '<a href="' + url + '" target="_blank">';
+                            anchor += '<br /><a href="' + url + '" target="_blank">';
                             anchor += '<img src="' + url + '" alt="" onerror="brokenImage(this);" onload="updateScrolling()" />';
                             anchor += '</a>';
                             break;
@@ -90,18 +88,29 @@
 
                 if (data.pasted)
                 {
+                    var characterCheck = message.match(/^[^\s]/gm);
+
+                    if (characterCheck == null || characterCheck.length == 0) {
+                        message = message.replace(/\t/gm, '    ');
+
+                        var spaceCount = Math.min.apply(null, $.map(message.match(/^\s+/gm), function (x) { return x.length; }));
+
+                        message = message.replace(/(\r\n|\r|\n){2,}/g, "\n" + Array(spaceCount + 1).join(' ') + "\n");
+                        message = message.replace(RegExp('^\\s{' + spaceCount + '}', 'gm'), '');
+                    }
+
                     var lines = message.split(/\r\n|\r|\n/);
 
                     if (lines.length > 10) {
-                        var pre = $('<pre>').text(lines.slice(0, 6).join("\n"));
-                        var divCollapsed = $('<div class="collapsed">').append(pre).append('<strong>...</strong><br />');
+                        var pre = $('<pre>').text(lines.slice(0, 6).join("\n") + "\n...");
+                        var divCollapsed = $('<div class="collapsed">').append(pre);
 
                         $('<a href="javascript:;">').text('Expand text').click(function () {
                             $(this).parent().hide().siblings('.expanded').show();
                             updateScrolling();
                         }).appendTo(divCollapsed);
 
-                        pre = $('<pre>').text(message);
+                        pre = $('<pre>').text(lines.join("\n"));
                         var divExpanded = $('<div class="expanded">').append(pre);
 
                         $('<a href="javascript:;">').text('Hide text').click(function () {
@@ -122,11 +131,11 @@
 
                         if (data.pasted)
                         {
-                            $('#messages tbody .last-row td.message').append('<br />').append(message);
+                            $('#messages tbody .last-row td.message').append($('<p>').append(message));
                         }
                         else
                         {
-                            $('#messages tbody .last-row td.message').append('<br />').append(createLink(message));
+                            $('#messages tbody .last-row td.message').append($('<p>').text(createLink(message)));
                         }
 
                         updateScrolling();
@@ -143,11 +152,11 @@
 
                 if (data.pasted)
                 {
-                    $('<td class="message">').html(span).append(message).appendTo(row);
+                    $('<td class="message">').html(span).append($('<p>').append(message)).appendTo(row);
                 }
                 else
                 {
-                    $('<td class="message">').html(span).append(createLink(message)).appendTo(row);
+                    $('<td class="message">').html(span).append($('<p>').text(createLink(message))).appendTo(row);
                 }
 
                 $('#messages tbody .last-row').removeClass('last-row');
@@ -369,7 +378,7 @@
             }
         </script>
 
-        <link href="/screen.css" media="screen" rel="stylesheet" />
+        <link href="screen.css" media="screen" rel="stylesheet" />
     </head>
 
     <body>
