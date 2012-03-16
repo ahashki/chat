@@ -1,11 +1,21 @@
-var express = require('express');
+var express = require('express'),
+    mongo = require('mongoskin'),
+    db = mongo.db('localhost:27017/chat?auto_reconnect');
 var app = module.exports = express.createServer();
 var io = require('socket.io').listen(app);
 io.set('log level', 0);
 
-app.configure(function() {
+app.configure(function(){
     app.use(express.static(__dirname + '/public/'));
 });
+
+var enableLog = true;
+
+function log(message) {
+    if (enableLog) {
+        console.log(message);
+    }
+}
 
 app.listen(process.env.C9_PORT || 14243);
 
@@ -30,7 +40,21 @@ io.sockets.on('connection', function (socket) {
 
     socket.on('message', function (data) {
         data.id = socket.id;
+
+        db.collection('messages').save(data, { upsert: true }, function () {
+            log('message saved');
+            log(data);
+        });
+
         socket.broadcast.emit('message', data);
+    });
+
+    socket.on('load-history', function () {
+        db.collection('messages').find({}, { 'limit': 20, sort: [['timestamp', -1]] }).toArray(function(err, data) {
+            socket.emit('load-history', data);
+            log('message history loaded');
+            log(data);
+        });
     });
 
     socket.on('get-users', function () {

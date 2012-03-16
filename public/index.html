@@ -82,7 +82,7 @@
                 return hour + ':' + minutes + ' ' + ampm;
             }
 
-            function addMessageRow(data, classes) {
+            function addMessageRow(data, classes, prepend) {
                 var time = getTimestamp(data.timestamp);
                 var message = data.message;
 
@@ -123,20 +123,17 @@
                         message = $('<pre>').text(message);
                     }
                 }
+                else {
+                    message = createLink(message);
+                }
+
+                var newMessage = $('<p>').append(message);
 
                 if ($('#messages tbody .last-row').attr('data-user-id') == data.id) {
                     var timestamp = new Date($('#messages tbody .last-row .timestamp').attr('data-timestamp'));
 
                     if (!$('#messages tbody .last-row').hasClass('message-notice') && !$('#messages tbody .last-row').hasClass('message-welcome') && getTimestamp(timestamp) == time) {
-
-                        if (data.pasted)
-                        {
-                            $('#messages tbody .last-row td.message').append($('<p>').append(message));
-                        }
-                        else
-                        {
-                            $('#messages tbody .last-row td.message').append($('<p>').text(createLink(message)));
-                        }
+                        $('#messages tbody .last-row td.message').append(newMessage);
 
                         updateScrolling();
                         return;
@@ -148,19 +145,21 @@
                 });
 
                 $('<td class="nickname">').text(data.nickname).appendTo(row);
-                var span = $('<span class="timestamp">').attr('data-timestamp', new Date()).text(time);
+                var span = $('<span class="timestamp">').attr('data-timestamp', new Date((prepend ? data.timestamp : ''))).text(time);
 
-                if (data.pasted)
+                $('<td class="message">').html(span).append(newMessage).appendTo(row);
+
+                $('#messages tbody .last-row').removeClass('last-row');
+
+                if (prepend)
                 {
-                    $('<td class="message">').html(span).append($('<p>').append(message)).appendTo(row);
+                    $('#messages tbody').prepend(row);
                 }
                 else
                 {
-                    $('<td class="message">').html(span).append($('<p>').text(createLink(message))).appendTo(row);
+                    $('#messages tbody').append(row);
                 }
 
-                $('#messages tbody .last-row').removeClass('last-row');
-                $('#messages tbody').append(row);
                 updateScrolling();
             }
 
@@ -209,6 +208,10 @@
                 socket = io.connect(url);
 
                 socket.on('register', function (data) {
+                    socket.emit('load-history', {
+                        nickname: nickname
+                    });
+
                     if (nickname == 'anon')
                     {
                         socketId = data.id;
@@ -243,6 +246,12 @@
                         }
 
                         addUser(data[i]);
+                    }
+                });
+
+                socket.on('load-history', function (data) {
+                    for (var i in data) {
+                        addMessageRow(data[i], 'message-old', true);
                     }
                 });
 
