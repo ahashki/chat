@@ -13,6 +13,7 @@
             var socket = null;
             var socketId = null;
             var scrollToBottom = true;
+            var isActive = true;
 
             function brokenImage(e) {
                 e.onerror = function () { };
@@ -197,8 +198,47 @@
                 }
             }
 
+            var titlebar = {
+                timer: null,
+                original: '',
+                update: '',
+                start: function (text) {
+                    this.update = text;
+
+                    this.toggle();
+                },
+                toggle: function () {
+                    if (this.timer != null) {
+                        clearTimeout(this.timer);
+                    }
+
+                    top.document.title = top.document.title == this.original ? this.update : this.original;
+
+                    this.timer = setTimeout(function () {
+                        titlebar.toggle();
+                    }, 1100);
+                },
+                reset: function () {
+                    if (this.timer != null) {
+                        clearTimeout(this.timer);
+                    }
+
+                    top.document.title = this.original;
+                    this.timer = null;
+                    this.update = '';
+                }
+            };
+
             $(document).ready(function () {
                 var cookieNickname = $.cookies.get('chat.nickname');
+                titlebar.original = top.document.title;
+
+                $(window).blur(function () {
+                    isActive = false;
+                }).focus(function () {
+                    isActive = true;
+                    titlebar.reset();
+                });
 
                 $('#messages').scroll(function() {
                     scrollToBottom = (((this.scrollHeight - $(this).scrollTop()) - $(this).height()) == 0);
@@ -273,6 +313,11 @@
                 });
 
                 socket.on('message', function (data) {
+                    if (!isActive)
+                    {
+                        titlebar.start('New message!');
+                    }
+
                     addMessageRow(data);
                     addUser(data);
                 });
