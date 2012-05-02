@@ -17,6 +17,16 @@ exports.getMessageHistory = function(limit, fn) {
 	});
 };
 
+exports.applyToUsers = function(fn) {
+	if(typeof(fn) !== 'function') {
+		return;
+	}
+
+	for(var i in users) {
+		fn(users[i]);
+    }
+}
+
 exports.getActiveUsers = function(fn) {
 	if(typeof(fn) !== 'function') {
 		return;
@@ -42,8 +52,8 @@ exports.addUser = function(user, fn) {
 
 exports.removeUser = function(user) {
 	for (var i in users) {
-        if (users[i].id == data.id) {
-            data.nickname = users[i].nickname;
+        if (users[i].id == user.id) {
+            user.nickname = users[i].nickname;
             users.splice(i, 1);
             break;
         }

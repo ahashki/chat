@@ -8,17 +8,17 @@ io.set('log level', 0);
 
 function sendMessage(data) {
     dal.saveMessage(data);
-    io.sockets.emit('message', data);
+    io.sockets.socket(data.id).broadcast.emit('message', data);
     sendToWp7(data);
 }
 
 function sendToWp7(data) {
     var rawMessage = wp7.getToastXml(data.nickname, data.message);
-    for(var i in users) {
-        if(users[i].uri) {
-            wp7.sendToast(users[i].uri, rawMessage);
+    dal.applyToUsers(function(user) {
+        if(user.uri) {
+            wp7.sendToast(user.uri, rawMessage);
         }
-    }
+    });
 };
 
 function httpRegisterCallback (req, res) {
@@ -27,9 +27,10 @@ function httpRegisterCallback (req, res) {
             nickname: req.body.nickname,
             uri: new Buffer(req.body.uri, 'base64').toString('ascii')
         };
-    users.push(data);
-    io.sockets.emit('new-user', data);
-    res.send(true);
+    dal.addUser(data, function(user) {
+        io.sockets.emit('new-user', data);
+        res.send(true);
+    });
 }
 
 function httpSendMessage(req, res) {
@@ -60,7 +61,7 @@ io.sockets.on('connection', function (socket) {
     function socketLoadMessage() {
         dal.getMessageHistory(20, function(data) {
             socket.emit('load-history', data);
-        };
+        });
     }
 
     function socketGetUsers() {
