@@ -6,14 +6,22 @@
         <script src="/socket.io/socket.io.js"></script>
         <script src="/scripts/jquery.cookies.2.2.0.min.js"></script>
         <script>
-            var oldNickname = 'anon';
-            var nickname = 'anon';
-            var originalHeight = null;
-            var url = document.URL;
-            var socket = null;
-            var socketId = null;
-            var scrollToBottom = true;
-            var isActive = true;
+
+            var oldNickname = 'anon'
+            , nickname = 'anon'
+            , originalHeight = null
+            , url = document.URL
+            , socket = null
+            , socketId = null
+            , scrollToBottom = true
+            , isActive = true
+            , userId = $.cookies.get('chat.userId');
+            if(!userId) {
+                $.cookies.set('chat.userId', generateUuid());
+            }
+
+
+            function generateUuid(a,b){for(b=a='';a++<36;b+=a*51&52?(a^15?8^Math.random()*(a^20?16:4):4).toString(16):'-');return b}
 
             function brokenImage(e) {
                 e.onerror = function () { };
@@ -130,7 +138,7 @@
 
                 var newMessage = $('<p>').append(message);
 
-                if ($('#messages tbody .last-row').attr('data-user-id') == data.id) {
+                if ($('#messages tbody .last-row').attr('data-user-id') == data.userId) {
                     var timestamp = new Date($('#messages tbody .last-row .timestamp').attr('data-timestamp'));
 
                     if (!$('#messages tbody .last-row').hasClass('message-notice') && !$('#messages tbody .last-row').hasClass('message-welcome') && getTimestamp(timestamp) == time) {
@@ -142,7 +150,7 @@
                 }
 
                 var row = $('<tr class="last-row message-row ' + (classes != undefined ? classes : '') + '">').attr({
-                    'data-user-id': data.id
+                    'data-user-id': data.userId
                 });
 
                 $('<td class="nickname">').text(data.nickname).appendTo(row);
@@ -167,7 +175,7 @@
             function addNoticeRow(data, message, classes) {
                 var time = getTimestamp();
 
-                if ($('#messages tbody .last-row').attr('data-user-id') == data.id) {
+                if ($('#messages tbody .last-row').attr('data-user-id') == data.userId) {
                     if ($('#messages tbody .last-row').hasClass('message-notice')) {
                         var timestamp = $('#messages tbody .last-row .timestamp');
                         $('#messages tbody .last-row td').html(timestamp).append(message);
@@ -178,7 +186,7 @@
                 }
 
                 var row = $('<tr class="last-row message-row ' + (classes != undefined ? classes : '') + '">').attr({
-                    'data-user-id': data.id
+                    'data-user-id': data.userId
                 });
 
                 var span = $('<span class="timestamp">').attr('data-timestamp', new Date()).text(time);
@@ -190,9 +198,13 @@
             }
 
             function addUser(data) {
-                if ($('li[data-user-id=' + data.id + ']').length == 0) {
+                if(data.userId == userId) {
+                    return;
+                }
+
+                if ($('li[data-user-id=' + data.userId + ']').length == 0) {
                     $('<li>').attr({
-                        'data-user-id': data.id,
+                        'data-user-id': data.userId,
                         title: data.nickname
                     }).text(data.nickname).appendTo('#users ul');
                 }
@@ -231,9 +243,12 @@
 
             $(document).ready(function () {
                 $('#sharelink').append('<a href="' + window.location + '">' + window.location + '</a>');
+                
+                var room = window.location.pathname;
+                
                 var cookieNickname = $.cookies.get('chat.nickname');
-                titlebar.original = top.document.title;
 
+                titlebar.original = top.document.title;
                 $(window).blur(function () {
                     isActive = false;
                 }).focus(function () {
@@ -246,19 +261,19 @@
                 });
 
                 originalHeight = $('#message')[0].scrollHeight;
+
                 socket = io.connect();
-
-                socket.emit('join', window.location.pathname);
-
                 socket.on('register', function (data) {
                     socket.emit('load-history', {
+                        room: room,
+                        userId: userId,
                         nickname: nickname
                     });
 
                     if (nickname == 'anon')
                     {
-                        socketId = data.id;
-                        nickname += '-' + socketId;
+                        socketId = data.userId;
+                        nickname += '-' + data.userId;
                     }
 
                     $('#nickname span').text(nickname);
@@ -267,23 +282,21 @@
                     data.nickname = oldNickname = nickname;
                     addUser(data);
                     addNoticeRow(data, 'Welcome' + (cookieNickname != null ? ' back' : '') + ' to the chat room!', 'message-welcome');
-                    socket.emit('get-users');
+                    socket.emit('get-users', {room: room});
 
                     if (cookieNickname != null)
                     {
                         socket.emit('check-nickname', {
+                            room: room,
+                            userId: userId,
                             nickname: cookieNickname
                         });
                     }
                 });
 
-                socket.emit('register', {
-                    nickname: nickname
-                });
-
                 socket.on('get-users', function (data) {
                     for (var i in data) {
-                        if (data[i].id == socketId)
+                        if (data[i].userId == userId)
                         {
                             continue;
                         }
@@ -304,15 +317,15 @@
                 });
 
                 socket.on('disconnect', function(data) {
-                    if (data.id == socketId || data.id == undefined)
+                    if (data.userId == userId || data.userId == undefined)
                     {
                         return;
                     }
 
                     addNoticeRow(data, '<span class="nickname">' + data.nickname + '</span> has left the chat room.', 'message-notice');
 
-                    $('tr[data-user-id=' + data.id + '] .nickname').not('.message-notice .nickname, .message-welcome .nickname').addClass('offline');
-                    $('li[data-user-id=' + data.id + '], div[data-user-id=' + data.id + ']').remove();
+                    $('tr[data-user-id=' + data.userId + '] .nickname').not('.message-notice .nickname, .message-welcome .nickname').addClass('offline');
+                    $('li[data-user-id=' + data.userId + '], div[data-user-id=' + data.userId + ']').remove();
                 });
 
                 socket.on('message', function (data) {
@@ -326,8 +339,8 @@
                 });
 
                 socket.on('update-nickname', function(data) {
-                    $('tr[data-user-id=' + data.id + '] .nickname, li[data-user-id=' + data.id + ']').text(data.nickname);
-                    $('li[data-user-id=' + data.id + ']').attr('title', data.nickname);
+                    $('tr[data-user-id=' + data.userId + '] .nickname, li[data-user-id=' + data.userId + ']').text(data.nickname);
+                    $('li[data-user-id=' + data.userId + ']').attr('title', data.nickname);
                     addUser(data);
                 });
 
@@ -347,9 +360,17 @@
                         $('#users #nickname span').text(data.nickname).show();
 
                         socket.emit('update-nickname', {
+                            userId: userId,
+                            room: room,
                             nickname: data.nickname
                         });
                     }
+                });
+
+                socket.emit('register', {
+                    userId: userId,
+                    room: room,
+                    nickname: nickname
                 });
 
                 $('#send-message').click(function() {
@@ -359,7 +380,8 @@
                         var d = new Date();
 
                         var data = {
-                            id: socketId,
+                            userId: userId,
+                            room: room,
                             nickname: nickname,
                             message: message,
                             timestamp: d,
@@ -401,6 +423,8 @@
 
                 $('#update-username').click(function() {
                     socket.emit('check-nickname', {
+                        userId: userId,
+                        room: room,
                         nickname: $.trim($('input[name=new-username]').val())
                     });
 

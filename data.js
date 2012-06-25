@@ -1,7 +1,7 @@
-var mongo = require('mongoskin'),
-    db = mongo.db('localhost:27017/chat?auto_reconnect');
-
-var users = {};
+var mongo = require('mongoskin')
+    , db = mongo.db('localhost:27017/chat?auto_reconnect')
+	, users = {}
+	, userMap = {};
 
 exports.getMessageHistory = function(room, limit, fn) {
 	if(typeof(fn) !== 'function') {
@@ -16,6 +16,18 @@ exports.getMessageHistory = function(room, limit, fn) {
 		fn(data);
 	});
 };
+
+exports.removeSocketMap = function(socketId) {
+	delete userMap[socketId];
+}
+
+exports.mapSocketIdToUser = function(socketId, user) {
+	userMap[socketId] = user;
+}
+
+exports.getUserFromSocketId = function(socketId) {
+	return userMap[socketId];
+}
 
 exports.applyToUsers = function(fn) {
 	if(typeof(fn) !== 'function') {
@@ -35,17 +47,17 @@ exports.getActiveUsers = function(room, fn) {
 	fn(users[room]);
 }
 
-exports.addUser = function(room, user, fn) {
+exports.addUser = function(user, fn) {
 	if (user.nickname == 'anon') {
-        user.nickname += '-' + user.id;
+        user.nickname += '-' + user.userId;
     }
 
-    if(!users[room]) {
-    	users[room] = [];
+    if(!users[user.room]) {
+    	users[user.room] = [];
     }
 
-    users[room].push({
-        id: user.id,
+    users[user.room].push({
+        userId: user.userId,
         nickname: user.nickname
     });
 
@@ -54,20 +66,20 @@ exports.addUser = function(room, user, fn) {
 	}
 }
 
-exports.removeUser = function(room, userId) {
-	for (var i in users[room]) {
-        if (users[room][i].id == userId) {
-            users[room].splice(i, 1);
+exports.removeUser = function(data) {
+	for (var i in users[data.room]) {
+        if (users[data.room][i].userId == data.userId) {
+            users[data.room].splice(i, 1);
             break;
         }
     }
 }
 
-exports.updateName = function(room, userId, nickname, fn) {
+exports.updateName = function(data, fn) {
 	var updatedName = false;
-	for (var i in users[room]) {
-        if (users[room][i].id == userId) {
-            users[room][i].nickname = nickname;
+	for (var i in users[data.room]) {
+        if (users[data.room][i].userId == data.userId) {
+            users[data.room][i].nickname = data.nickname;
             updatedName = true;
             break;
         }
@@ -78,10 +90,10 @@ exports.updateName = function(room, userId, nickname, fn) {
 	}
 }
 
-exports.checkName = function(room, nickname, fn) {
+exports.checkName = function(data, fn) {
 	var exists = false;
-	for (var i in users[room]) {
-        if (users[room][i].nickname == nickname) {
+	for (var i in users[data.room]) {
+        if (users[data.room][i].nickname == data.nickname) {
             exists = true;
             break;
         }
