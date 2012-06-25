@@ -6,10 +6,27 @@ var server = require('./server'),
 
 io.set('log level', 0);
 
+function getRandomRoomName() {
+    return Math.floor(Math.random() * 1000000).toString(36).toUpperCase();
+}
+
+app.get('/', function(req, res) {
+    console.log('ROOT REQUESTED!');
+    res.redirect('/' + getRandomRoomName());
+});
+
+app.get('/:room', function(req, res) {
+    res.sendfile('./public/content.html');
+});
+
 function sendMessage(data) {
-    dal.saveMessage(data);
-    io.sockets.socket(data.id).broadcast.emit('message', data);
-    sendToWp7(data);
+    var socket = io.sockets.socket(data.id);
+    socket.get('room', function(err, room) {
+        data.room = room;
+        dal.saveMessage(data);
+        sendToWp7(data);
+        socket.broadcast.to(room).emit('message', data);
+    });
 }
 
 function sendToWp7(data) {
@@ -49,8 +66,10 @@ app.post('/SendMessage', httpSendMessage);
 
 io.sockets.on('connection', function (socket) {
     function socketDisconnect() {
-        dal.removeUser(socket.id);
-        socket.broadcast.emit('disconnect', socket.id);
+        socket.get('room', function(err, room) {
+            dal.removeUser(room, socket.id);
+            socket.broadcast.to(room).emit('disconnect', socket.id);
+        });
     }
 
     function socketMessage(data) {
@@ -59,52 +78,52 @@ io.sockets.on('connection', function (socket) {
     }
 
     function socketLoadMessage() {
-        dal.getMessageHistory(20, function(data) {
-            socket.emit('load-history', data);
+        socket.get('room', function(err, room) {
+            dal.getMessageHistory(room, 20, function(data) {
+                socket.emit('load-history', data);
+            });
         });
     }
 
     function socketGetUsers() {
-        dal.getActiveUsers(function(users) {
-           socket.emit('get-users', users); 
+        socket.get('room', function(err, room) {
+            dal.getActiveUsers(room, function(users) {
+                socket.to(room).emit('get-users', users); 
+            });
         });
     }
 
     function socketRegister(data) {
-        data.id = socket.id;
-        dal.addUser(data, function(user) {
-            socket.emit('register', user);
-            socket.broadcast.emit('new-user', user);            
+        socket.get('room', function(err, room) {
+            data.id = socket.id;
+            dal.addUser(room, data, function(user) {
+                socket.emit('register', user);
+                socket.broadcast.to(room).emit('new-user', user);
+            });
         });
     }
 
     function socketUpdateNickname(data) {
         data.id = socket.id;
-
-        for (var i in users) {
-            if (users[i].id == data.id) {
-                users[i].nickname = data.nickname;
-                break;
-            }
-        }
-
-        io.sockets.emit('update-nickname', data);
+        socket.get('room', function(err, room) {
+            dal.updateName(room, socket.id, data.nickname, function(updateName) {
+                if(updateName) {
+                    console.log('UPDATED NAME: ' + data.nickname);
+                    io.sockets.to(room).emit('update-nickname', data);
+                }
+            });
+        });
     }
 
     function socketCheckNickname(data) {
         data.id = socket.id;
         data.exists = false;
-
-        for (var i in users) {
-            if (users[i].nickname.toLowerCase() == data.nickname.toLowerCase()) {
-                if (users[i].id != socket.id) {
-                    data.exists = true;
-                }
-                break;
-            }
-        }
-
-        socket.emit('check-nickname', data);
+        socket.get('room', function(err, room) {
+            dal.checkName(room, data.nickname, function(nameExists) {
+                data.exists = nameExists;
+                socket.to(room).emit('check-nickname', data);
+            });
+        });
     }
 
     socket.on('disconnect', socketDisconnect);
@@ -114,4 +133,8 @@ io.sockets.on('connection', function (socket) {
     socket.on('register', socketRegister);
     socket.on('update-nickname', socketUpdateNickname);
     socket.on('check-nickname', socketCheckNickname);
+    socket.on('join', function(room) {
+        socket.set('room', room, function() { console.log('room ' + room + ' saved'); } );
+        socket.join(room);
+    });
 });

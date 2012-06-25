@@ -3,8 +3,8 @@
     <head>
         <title>Chat</title>
         <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
-        <script src="socket.io/socket.io.js"></script>
-        <script src="scripts/jquery.cookies.2.2.0.min.js"></script>
+        <script src="/socket.io/socket.io.js"></script>
+        <script src="/scripts/jquery.cookies.2.2.0.min.js"></script>
         <script>
             var oldNickname = 'anon';
             var nickname = 'anon';
@@ -230,6 +230,7 @@
             };
 
             $(document).ready(function () {
+                $('#sharelink').append('<a href="' + window.location + '">' + window.location + '</a>');
                 var cookieNickname = $.cookies.get('chat.nickname');
                 titlebar.original = top.document.title;
 
@@ -245,7 +246,9 @@
                 });
 
                 originalHeight = $('#message')[0].scrollHeight;
-                socket = io.connect(url);
+                socket = io.connect();
+
+                socket.emit('join', window.location.pathname);
 
                 socket.on('register', function (data) {
                     socket.emit('load-history', {
@@ -331,7 +334,7 @@
                 socket.on('check-nickname', function(data) {
                     if (data.exists) {
                         $('input[name=new-username]').val(oldNickname);
-
+                        $.cookies.set('chat.nickname', oldNickname);
                         addNoticeRow(data, 'Nickname `' + data.nickname + '` already exists.', 'message-error');
                     }
                     else {
@@ -365,6 +368,7 @@
 
                         scrollToBottom = true;
                         addMessageRow(data, 'message-owned');
+                        console.log(data);
                         socket.emit('message', data);
                         $('#message').val('').css('height', originalHeight);
                     }
@@ -436,6 +440,7 @@
     </head>
 
     <body>
+        <p>You have been connected to a random chat room. To invite people to chat, please share this link with them: <span id="sharelink"></p>
         <div id="wrapper">
             <div id="users">
                 <div id="nickname">
